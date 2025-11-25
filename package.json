@@ -18,7 +18,12 @@
       "runtime": "python",
       "interfaces": [
          "Scriptable"
-      ]
+      ],
+      "labels": {
+         "require": [
+            "@scrypted/jupyter"
+         ]
+      }
    },
    "devDependencies": {
       "@scrypted/sdk": "^0.5.52"

@@ -1,29 +1,29 @@
 from __future__ import annotations
-import os
-from typing import Any
-import scrypted_sdk
+
 import asyncio
 import json
-from jupyter_client import KernelManager
-from typing import TypedDict
+import os
 import sys
+from typing import TypedDict
+
+import scrypted_sdk
+from jupyter_client import BlockingKernelClient, KernelManager
+from scrypted_sdk.types import DeviceProvider, Scriptable
+
 
 class Kernel(TypedDict):
     manager: KernelManager
     client: BlockingKernelClient
 
-from scrypted_sdk.types import DeviceProvider, OnOff, ScryptedDeviceType, ScryptedInterface, Scriptable
-from typing import TypedDict
-from jupyter_client import BlockingKernelClient
 
 class JupyterPlugin(scrypted_sdk.ScryptedDeviceBase, DeviceProvider, Scriptable):
     def __init__(self):
         super().__init__()
         self.kernels: dict[str, Kernel] = {}
-        
+
     async def eval(self, source, variables = None):
         script: str = source.get("script", "")
-        kernel_name = source.get("filename")
+        kernel_name = source.get("name")
         kernel = self.kernels.get(kernel_name)
         if not kernel:
             manager = KernelManager(kernel_name='python3')
@@ -50,12 +50,11 @@ class JupyterPlugin(scrypted_sdk.ScryptedDeviceBase, DeviceProvider, Scriptable)
         status = msg['content'].get('status')
         if status == 'error':
             return "\n".join(msg['content'].get('traceback', []))
-        # Capture outputs
         std = ""
 
         while True:
             try:
-                msg = client.get_iopub_msg(timeout=1)
+                msg = client.get_iopub_msg(timeout=10)
                 if msg['parent_header'].get('msg_id') == msg_id:
                     msg_type = msg['header']['msg_type']
                     content = msg['content']
@@ -70,8 +69,7 @@ class JupyterPlugin(scrypted_sdk.ScryptedDeviceBase, DeviceProvider, Scriptable)
                         elif stream_name == 'stderr':
                             std += text
             except Exception as e:
-                print("Timeout or error receiving messages:", e)
-                break
+                raise e
 
         return std
 
