@@ -25,6 +25,13 @@ class JupyterPlugin(scrypted_sdk.ScryptedDeviceBase, DeviceProvider, Scriptable)
         script: str = source.get("script", "")
         kernel_name = source.get("name")
         kernel = self.kernels.get(kernel_name)
+        if not script:
+            # stop the kernel if no script is provided
+            if kernel:
+                kernel["client"].stop_channels()
+                kernel["manager"].shutdown_kernel()
+                del self.kernels[kernel_name]
+            return
         if not kernel:
             manager = KernelManager(kernel_name='python3')
             python_path = os.pathsep.join(sys.path.copy())
